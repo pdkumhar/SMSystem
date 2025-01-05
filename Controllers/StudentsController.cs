@@ -137,10 +137,6 @@ namespace SMSystem.Controllers
 
 
 
-
-
-
-
         // GET: Students/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -169,61 +165,79 @@ namespace SMSystem.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            Console.WriteLine($"Editing student: {student.FirstName} {student.LastName}");
+            Console.WriteLine($"Photograph: {photograph?.FileName ?? "No file uploaded"}");
+
+            // Clear ModelState errors for Photograph field
+            ModelState.Remove("Photograph"); // Remove Photograph field from ModelState validation
+
+            // Log the model state validation errors, if any
+            if (!ModelState.IsValid)
             {
-                try
+                Console.WriteLine("ModelState is invalid.");
+                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
                 {
-                    // Check if a new file is uploaded
-                    if (photograph != null && photograph.Length > 0)
-                    {
-                        // Define the upload directory
-                        var uploadDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-
-                        if (!Directory.Exists(uploadDirectory))
-                        {
-                            Directory.CreateDirectory(uploadDirectory);
-                        }
-
-                        // Create unique file name to avoid overwriting
-                        var fileExtension = Path.GetExtension(photograph.FileName);
-                        var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
-                        var filePath = Path.Combine(uploadDirectory, uniqueFileName);
-
-                        // Save the file to the server
-                        using (var fileStream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await photograph.CopyToAsync(fileStream);
-                        }
-
-                        // Update the photograph path
-                        student.Photograph = "/uploads/" + uniqueFileName;
-                    }
-                    else
-                    {
-                        // If no new file is uploaded, retain the existing photograph path
-                        var existingStudent = await _context.Students.FindAsync(id);
-                        student.Photograph = existingStudent.Photograph;
-                    }
-
-                    // Update the student record in the DB
-                    _context.Update(student);
-                    await _context.SaveChangesAsync();
+                    Console.WriteLine($"Error: {error.ErrorMessage}");
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!StudentExists(student.SrNo))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                return View(student); // Return the same view with error messages
             }
-            return View(student);
+
+            try
+            {
+                // If no new file is uploaded, retain the existing photograph
+                if (photograph != null && photograph.Length > 0)
+                {
+                    var uploadDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+
+                    // Ensure the upload directory exists
+                    if (!Directory.Exists(uploadDirectory))
+                    {
+                        Directory.CreateDirectory(uploadDirectory);
+                    }
+
+                    var fileExtension = Path.GetExtension(photograph.FileName);
+                    var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                    var filePath = Path.Combine(uploadDirectory, uniqueFileName);
+
+                    // Save the file to server
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await photograph.CopyToAsync(fileStream);
+                    }
+
+                    // If there's an existing photo, delete it from the server
+                    if (!string.IsNullOrEmpty(student.Photograph) && student.Photograph != "/uploads/default.jpg")
+                    {
+                        var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", student.Photograph.TrimStart('/'));
+                        if (System.IO.File.Exists(oldFilePath))
+                        {
+                            System.IO.File.Delete(oldFilePath);
+                        }
+                    }
+
+                    student.Photograph = "/uploads/" + uniqueFileName;
+                }
+                else
+                {
+                    // If no new image is uploaded, retain the current image path
+                    var existingStudent = await _context.Students.AsNoTracking().FirstOrDefaultAsync(s => s.SrNo == id);
+                    student.Photograph = existingStudent?.Photograph ?? "/uploads/default.jpg"; // Default image if none provided
+                }
+
+                // Update the student record in the database
+                _context.Update(student);
+                await _context.SaveChangesAsync();
+
+                return RedirectToAction(nameof(Index)); // Redirect after successful save
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception: " + ex.Message);
+                return View(student); // Return to the same view if there's an error
+            }
         }
+
+
 
 
 

@@ -10,7 +10,7 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Edit" enctype="multipart/form-data">
+        <form asp-action="Edit" enctype="multipart/form-data" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="SrNo" />
 
@@ -41,7 +41,7 @@
             <!-- Drop-down for Class -->
             <div class="form-group">
                 <label asp-for="Class" class="control-label"></label>
-                    @Html.DropDownListFor(model => model.Class, new SelectList(Enumerable.Range(1, 12)), "Select Class", new { @class = "form-control" })
+                @Html.DropDownListFor(model => model.Class, new SelectList(Enumerable.Range(1, 12)), "Select Class", new { @class = "form-control" })
                 <span asp-validation-for="Class" class="text-danger"></span>
             </div>
 
@@ -59,7 +59,7 @@
 
             <div class="form-group">
                 <label asp-for="Address" class="control-label"></label>
-                <input asp-for="Address" class="form-control" />
+                <textarea asp-for="Address" class="form-control" rows="4"></textarea>
                 <span asp-validation-for="Address" class="text-danger"></span>
             </div>
 
@@ -92,8 +92,9 @@
     <a asp-action="Index">Back to List</a>
 </div>
 
-@section Scripts {
+@section Scripts {]
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+       
 }
