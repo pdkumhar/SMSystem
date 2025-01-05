@@ -1,83 +1,48 @@
 ﻿@model IEnumerable<SMSystem.Models.Student>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Students List";
 }
 
-<h1>Index</h1>
+<h1>Students List</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
+<!-- Add New Student Button -->
+<a href="@Url.Action("Create", "Students")" class="btn btn-success mb-3">Add New Student</a>
+
 <table class="table">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.RollNumber)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.FirstName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MiddleName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.LastName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Class)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Mobile)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Email)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Address)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Photograph)
-            </th>
-            <th></th>
+            <th>SrNo</th>
+            <th>RollNumber</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Class</th>
+            <th>Mobile</th>
+            <th>Email</th>
+            <th>Photograph</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.RollNumber)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.FirstName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.MiddleName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.LastName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Class)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Mobile)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Address)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Photograph)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.SrNo">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.SrNo">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.SrNo">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var student in Model)
+        {
+            <tr>
+                <td>@student.SrNo</td>
+                <td>@student.RollNumber</td>
+                <td>@student.FirstName</td>
+                <td>@student.LastName</td>
+                <td>@student.Class</td>
+                <td>@student.Mobile</td>
+                <td>@student.Email</td>
+                <td>
+                    <!-- Display the image -->
+                    <img src="@student.Photograph" alt="Student Photograph" width="100" height="100" />
+                </td>
+                <td>
+                    <a href="@Url.Action("Edit", "Students", new { id = student.SrNo })">Edit</a> |
+                    <a href="@Url.Action("Delete", "Students", new { id = student.SrNo })">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>

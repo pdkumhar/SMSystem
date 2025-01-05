@@ -10,7 +10,7 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Create">
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <!-- RollNumber (Auto-generated, hidden from input) -->
@@ -69,10 +69,10 @@
                 <span asp-validation-for="Address" class="text-danger"></span>
             </div>
 
-            <!-- Photograph Input -->
+            <!-- Photograph File Input -->
             <div class="form-group">
                 <label asp-for="Photograph" class="control-label"></label>
-                <input asp-for="Photograph" class="form-control" />
+                <input asp-for="Photograph" type="file" class="form-control" />
                 <span asp-validation-for="Photograph" class="text-danger"></span>
             </div>
 

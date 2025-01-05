@@ -24,25 +24,7 @@ namespace SMSystem.Controllers
         {
             return View(await _context.Students.ToListAsync());
         }
-
-        // GET: Students/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var student = await _context.Students
-                .FirstOrDefaultAsync(m => m.SrNo == id);
-            if (student == null)
-            {
-                return NotFound();
-            }
-
-            return View(student);
-        }
-
+        
         // GET: Students/Create
         public IActionResult Create()
         {
@@ -55,26 +37,108 @@ namespace SMSystem.Controllers
         // POST: Students/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("SrNo,FirstName,MiddleName,LastName,Class,Mobile,Email,Address,Photograph")] Student student)
+        public async Task<IActionResult> Create([Bind("SrNo,RollNumber,FirstName,MiddleName,LastName,Class,Mobile,Email,Address,Photograph")] Student student, IFormFile photograph)
         {
-            if (ModelState.IsValid)
+            // Log the form input
+            Console.WriteLine("Form submitted.");
+            Console.WriteLine($"Student: {student.FirstName} {student.LastName}");
+
+            // Generate RollNumber automatically if it's not provided
+            if (string.IsNullOrEmpty(student.RollNumber))
             {
-                // Auto-generate RollNumber (e.g., RR00001, RR00002, RR00003)
-                var latestRollNumber = await _context.Students
-                    .OrderByDescending(s => s.SrNo) // Get the last added student
+                var lastStudent = await _context.Students
+                    .OrderByDescending(s => s.SrNo)
                     .FirstOrDefaultAsync();
 
-                // Generate the next roll number
-                int nextRollNumber = (latestRollNumber?.SrNo ?? 0) + 1;
-                student.RollNumber = $"RR{nextRollNumber:D5}"; // Format: RR00001, RR00002, ...
+                if (lastStudent != null && !string.IsNullOrEmpty(lastStudent.RollNumber))
+                {
+                    // Extract the numeric part of the last roll number (RR00001 -> 00001)
+                    var lastRollNumber = lastStudent.RollNumber;
+                    var rollNumberPart = lastRollNumber.Substring(2); // Remove "RR"
+                    if (int.TryParse(rollNumberPart, out int lastNumericPart))
+                    {
+                        // Increment the last numeric part by 1
+                        int nextRollNumber = lastNumericPart + 1;
+                        // Format the next roll number with leading zeros
+                        student.RollNumber = $"RR{nextRollNumber:D5}"; // Ensure 5 digits
+                    }
+                }
+                else
+                {
+                    // If no students exist, start with RR00001
+                    student.RollNumber = "RR00001";
+                }
+            }
 
-                // Add the student to the context and save changes
+            if (photograph != null && photograph.Length > 0)
+            {
+                Console.WriteLine("File received.");
+                Console.WriteLine($"File: {photograph.FileName}, Size: {photograph.Length}");
+
+                // Ensure the upload directory exists
+                var uploadDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                Console.WriteLine($"Upload Directory: {uploadDirectory}");
+
+                if (!Directory.Exists(uploadDirectory))
+                {
+                    Console.WriteLine("Creating upload directory...");
+                    Directory.CreateDirectory(uploadDirectory);
+                }
+
+                // Generate a unique filename to avoid overwriting
+                var fileExtension = Path.GetExtension(photograph.FileName);
+                var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                var filePath = Path.Combine(uploadDirectory, uniqueFileName);
+
+                Console.WriteLine($"Generated file path: {filePath}");
+
+                // Save the file
+                try
+                {
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await photograph.CopyToAsync(fileStream);
+                        Console.WriteLine("File successfully saved.");
+                    }
+
+                    // Save the relative file path in the student model
+                    student.Photograph = "/uploads/" + uniqueFileName;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"File saving failed: {ex.Message}");
+                    ModelState.AddModelError("Photograph", "Error uploading file.");
+                    return View(student);
+                }
+            }
+            else
+            {
+                Console.WriteLine("No file uploaded, using default image.");
+                student.Photograph = "/uploads/default.jpg";  // You can modify this to suit your needs
+            }
+
+            // Save the student data to the database
+            try
+            {
                 _context.Add(student);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                Console.WriteLine("Student saved successfully.");
             }
-            return View(student);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving student: {ex.Message}");
+                ModelState.AddModelError("", "There was an issue saving the student data.");
+                return View(student);
+            }
+
+            // Redirect after saving
+            return RedirectToAction(nameof(Index));
         }
+
+
+
+
+
 
 
         // GET: Students/Edit/5
@@ -98,7 +162,7 @@ namespace SMSystem.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("SrNo,RollNumber,FirstName,MiddleName,LastName,Class,Mobile,Email,Address,Photograph")] Student student)
+        public async Task<IActionResult> Edit(int id, [Bind("SrNo,RollNumber,FirstName,MiddleName,LastName,Class,Mobile,Email,Address,Photograph")] Student student, IFormFile photograph)
         {
             if (id != student.SrNo)
             {
@@ -109,6 +173,39 @@ namespace SMSystem.Controllers
             {
                 try
                 {
+                    // Check if a new file is uploaded
+                    if (photograph != null && photograph.Length > 0)
+                    {
+                        // Define the upload directory
+                        var uploadDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+
+                        if (!Directory.Exists(uploadDirectory))
+                        {
+                            Directory.CreateDirectory(uploadDirectory);
+                        }
+
+                        // Create unique file name to avoid overwriting
+                        var fileExtension = Path.GetExtension(photograph.FileName);
+                        var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                        var filePath = Path.Combine(uploadDirectory, uniqueFileName);
+
+                        // Save the file to the server
+                        using (var fileStream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await photograph.CopyToAsync(fileStream);
+                        }
+
+                        // Update the photograph path
+                        student.Photograph = "/uploads/" + uniqueFileName;
+                    }
+                    else
+                    {
+                        // If no new file is uploaded, retain the existing photograph path
+                        var existingStudent = await _context.Students.FindAsync(id);
+                        student.Photograph = existingStudent.Photograph;
+                    }
+
+                    // Update the student record in the DB
                     _context.Update(student);
                     await _context.SaveChangesAsync();
                 }
@@ -127,6 +224,8 @@ namespace SMSystem.Controllers
             }
             return View(student);
         }
+
+
 
         // GET: Students/Delete/5
         public async Task<IActionResult> Delete(int? id)
